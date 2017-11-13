@@ -3,3 +3,7 @@
 *.pyc
 !map_r.png
 !map_s.jpg
+*.rar
+*.zip
+*.tar
+*.gz

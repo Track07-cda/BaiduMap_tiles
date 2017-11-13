@@ -48,11 +48,12 @@ class FastThread(Thread):
 def download_tile(x, y, zoom, satellite=False):
     url = None
     filename = None
-    folder = "tile/"
+    folder = "road/" if satellite else "tile/"
+    scaler = "" if satellite else "&scaler=1"
     # styles is roadmap when downloading satellite
     styles = "sl" if satellite else "pl"
 
-    query = "qt=tile&x=%d&y=%d&z=%d&styles=%s&scaler=1&udt=20170927" % (x, y, zoom, styles)
+    query = "qt=tile&x=%d&y=%d&z=%d&styles=%s%s&udt=20170927" % (x, y, zoom, styles, scaler)
     url = "http://online0.map.bdimg.com/onlinelabel/?" + query
     filename = query + ".png"
 
@@ -100,11 +101,11 @@ def download_file(url, filename, folder=""):
 
 if __name__ == "__main__":
     
-    zoom = 8
+    zoom = 19
  
-    lat_start, lon_start = 31.717714,105.540665
-    lat_stop, lon_stop = 39.659668,111.262224
+    lat_start, lon_start = 34.233188,108.91931,
+    lat_stop, lon_stop = 34.241843,108.928293,
 
-    satellite = False
+    satellite = True
 	
     download_tiles(zoom, lat_start, lat_stop, lon_start, lon_stop, satellite)
