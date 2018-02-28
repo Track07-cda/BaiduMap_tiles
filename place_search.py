@@ -4,8 +4,8 @@ Created on Mon Sep 19 13:27:28 2016
 
 @author: Min
 """
-import urllib
-import urllib2
+import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error, urllib.parse
 import json
 import codecs
 
@@ -20,9 +20,9 @@ def request_place_API(lat1,lng1,lat2,lng2,query,page):
             'bounds':bounds,
             'output':'json',
             'ak':akey}
-    data = urllib.urlencode(args)
+    data = urllib.parse.urlencode(args)
     #req = urllib2.Request(url, data)
-    response = urllib2.urlopen(url+'?'+data)
+    response = urllib.request.urlopen(url+'?'+data)
     result = response.read()
     #print result
     return result
@@ -41,9 +41,9 @@ def request_place_API_all(lat1,lng1,lat2,lng2,query):
 def store_results(result,filename):
     f = codecs.open(filename,'w','utf-8')
     for block in result:
-        f.write(block[u'name']+"\n")
-        lat = block[u'location'][u'lat']
-        lng = block[u'location'][u'lng']
+        f.write(block['name']+"\n")
+        lat = block['location']['lat']
+        lng = block['location']['lng']
         f.write(str(lat)+' '+str(lng)+'\n')
         #f.write(unicode(block[u'location'],'utf-8'))
     f.close()
@@ -52,7 +52,7 @@ def clean_list(a):
     b = set()
     result = []
     for block in a:
-        name = block[u'name']
+        name = block['name']
         if name not in b:
             b.add(name)
             result.append(block)
@@ -75,7 +75,4 @@ if __name__ == "__main__":
     blocks_in_SJTU = clean_list(blocks_in_SJTU)
     filename = "result.txt"
     store_results(blocks_in_SJTU, filename)
-    
-    
-    
     

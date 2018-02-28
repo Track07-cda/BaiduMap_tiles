@@ -2,8 +2,8 @@
 # http://media.oregonarc.com/fish/tile.py
 
 import math
-import urllib
-import urllib2
+import urllib.request, urllib.parse, urllib.error
+import urllib.request, urllib.error, urllib.parse
 import json
 
 akey = 'uzIatbtHgfCTr71dWxnHolfZqG6vARNc'
@@ -26,14 +26,14 @@ def bd_latlng2xy(z,lat,lng):
             'to':6,
             'output':'json',
             'ak':akey}
-    data = urllib.urlencode(args)
-    response = urllib2.urlopen(url+data)
+    data = urllib.parse.urlencode(args)
+    response = urllib.request.urlopen(url+data)
     result = response.read()
     result = json.loads(result)
     loc = result["result"][0]
     res = 2**(18-z)
-    x = loc[u'x']/res
-    y = loc[u'y']/res
+    x = loc['x']/res
+    y = loc['y']/res
     return x,y
 
 if __name__ == "__main__":
@@ -41,5 +41,5 @@ if __name__ == "__main__":
     lat=31.025819
     lng=121.434229
     x,y = bd_latlng2xy(z,lat,lng)
-    print x//256
-    print y//256 # only right when lat>0 lng>0
+    print(x//256)
+    print(y//256) # only right when lat>0 lng>0

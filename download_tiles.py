@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 from threading import Thread
 import os, sys
 import math
@@ -19,10 +19,10 @@ def download_tiles(zoom, lat_start, lat_stop, lon_start, lon_stop, satellite=Tru
     stop_x = int(stop_x//256)
     stop_y = int(stop_y//256)
     
-    print "x range", start_x, stop_x
-    print "y range", start_y, stop_y
+    print("x range", start_x, stop_x)
+    print("y range", start_y, stop_y)
     
-    for x in xrange(start_x, stop_x):
+    for x in range(start_x, stop_x):
         # download(x, y, zoom)
         FastThread(x, start_y, stop_y, zoom, satellite).start()
 
@@ -37,7 +37,7 @@ class FastThread(Thread):
         self.satellite = satellite
     
     def run(self):
-        for y in xrange(self.start_y, self.stop_y):
+        for y in range(self.start_y, self.stop_y):
             if satellite:
                 download_satellite(self.x, y, self.zoom)
                 download_tile(self.x, y, self.zoom, True)
@@ -77,18 +77,18 @@ def download_file(url, filename, folder=""):
     if not os.path.exists(full_file_path):
         bytes = None
         try:
-            req = urllib2.Request(url, data=None)
-            response = urllib2.urlopen(req)
+            req = urllib.request.Request(url, data=None)
+            response = urllib.request.urlopen(req)
             bytes = response.read()
-        except Exception, e:
-            print "--", filename, "->", e
+        except Exception as e:
+            print("--", filename, "->", e)
             sys.exit(1)
         
-        if bytes.startswith("<html>"):
-            print "-- forbidden", filename
+        if bytes.startswith(b"<html>"):
+            print("-- forbidden", filename)
             sys.exit(1)
         
-        print "-- saving " + filename
+        print("-- saving " + filename)
         
         f = open(full_file_path, 'wb')
         f.write(bytes)
@@ -96,7 +96,7 @@ def download_file(url, filename, folder=""):
         
         time.sleep(1 + random.random())
     else:
-        print "-- existed " + filename
+        print("-- existed " + filename)
             
 
 if __name__ == "__main__":
