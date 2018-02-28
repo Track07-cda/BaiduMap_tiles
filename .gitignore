@@ -1,9 +1,12 @@
+.DS_Store
+
 *.jpg
 *.png
 *.pyc
-!map_r.png
-!map_s.jpg
 *.rar
 *.zip
 *.tar
 *.gz
+
+!map_r.png
+!map_s.jpg
