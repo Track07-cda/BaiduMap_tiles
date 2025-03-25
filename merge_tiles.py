@@ -1,6 +1,10 @@
+import os
+import sys
+
 from PIL import Image
-import sys, os
+
 from gmap_utils import *
+
 
 def merge_tiles(zoom, lat_start, lat_stop, lon_start, lon_stop, satellite=True):
     

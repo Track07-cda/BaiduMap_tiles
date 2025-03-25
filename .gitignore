@@ -10,3 +10,7 @@
 
 !map_r.png
 !map_s.jpg
+
+.venv
+venv
+.env

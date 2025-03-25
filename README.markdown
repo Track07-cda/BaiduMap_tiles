@@ -2,6 +2,29 @@
 
 ## Getting Started
 
+### Environment Setup
+
+This project requires a Baidu Maps API key. Create a `.env` file in the root directory with your API key:
+
+```
+BAIDU_API_KEY=your_api_key_here
+```
+
+You can copy the provided `.env.example` file and replace the placeholder with your actual API key:
+
+```bash
+cp .env.example .env
+# Edit the .env file to add your API key
+```
+
+### Installation
+
+Install the required dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
 ### Download Baidu Maps tiles
 
 Edit `download_tiles.py` to specify the area, zoom levels, and whether you want satellite or road maps:

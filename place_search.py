@@ -4,10 +4,11 @@ Created on Mon Sep 19 13:27:28 2016
 
 @author: Min
 """
-import urllib.request, urllib.parse, urllib.error
-import urllib.request, urllib.error, urllib.parse
-import json
 import codecs
+import json
+import urllib.error
+import urllib.parse
+import urllib.request
 
 akey = 'uzIatbtHgfCTr71dWxnHolfZqG6vARNc'
 

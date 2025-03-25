@@ -1,14 +1,23 @@
 # http://oregonarc.com/2011/02/command-line-tile-cutter-for-google-maps-improved/
 # http://media.oregonarc.com/fish/tile.py
 
-import math
-import urllib.request, urllib.parse, urllib.error
-import urllib.request, urllib.error, urllib.parse
 import json
-import time
+import math
+import os
 import random
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
 
-akey = 'uzIatbtHgfCTr71dWxnHolfZqG6vARNc'
+from dotenv import load_dotenv
+
+# Load API key from .env file
+load_dotenv()
+akey = os.getenv('BAIDU_API_KEY')
+
+if not akey:
+    raise ValueError("BAIDU_API_KEY not found in .env file. Please set your API key.")
 
 def latlon2px(z,lat,lon):
     x = 2**z*(lon+180)/360*256
