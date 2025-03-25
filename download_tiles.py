@@ -41,8 +41,8 @@ def download_tiles(zoom_levels, lat_start, lat_stop, lon_start, lon_stop, satell
         
         start_x = int(start_x//256)
         start_y = int(start_y//256)
-        stop_x = int(stop_x//256)
-        stop_y = int(stop_y//256)
+        stop_x = int(stop_x//256) + 1
+        stop_y = int(stop_y//256) + 1
         
         print("x range", start_x, stop_x)
         print("y range", start_y, stop_y)
@@ -220,11 +220,16 @@ def download_file(url, filename, folder="", max_retries=3, retry_delay=2):
 
 if __name__ == "__main__":
     # Example configuration
-    zoom_levels = list(range(8, 18))
+    zoom_levels = list(range(1, 8))
  
-    lat_start, lon_start = 30.763961, 119.926525
-    lat_stop, lon_stop = 32.053984, 121.408616
-    
+    lon_start, lat_start = -180, -90
+    lon_stop, lat_stop = 180, 90
+
+    if lon_start > lon_stop:
+        lon_start, lon_stop = lon_stop, lon_start
+
+    if lat_start > lat_stop:
+        lat_start, lat_stop = lat_stop, lat_start
     satellite = False
     
     download_tiles(zoom_levels, lat_start, lat_stop, lon_start, lon_stop, satellite)
