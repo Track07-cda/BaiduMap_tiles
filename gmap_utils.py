@@ -5,6 +5,8 @@ import math
 import urllib.request, urllib.parse, urllib.error
 import urllib.request, urllib.error, urllib.parse
 import json
+import time
+import random
 
 akey = 'uzIatbtHgfCTr71dWxnHolfZqG6vARNc'
 
@@ -19,7 +21,20 @@ def latlon2xy(z,lat,lon):
     y = int(y/256)#,int(y%256)
     return x,y
 
-def bd_latlng2xy(z,lat,lng):
+def bd_latlng2xy(z,lat,lng,max_retries=3,retry_delay=2):
+    """
+    Convert Baidu Map latitude and longitude to x, y coordinates
+    
+    Args:
+        z: zoom level
+        lat: latitude
+        lng: longitude
+        max_retries: maximum number of retry attempts
+        retry_delay: base delay between retries in seconds
+        
+    Returns:
+        Tuple (x, y) of coordinates
+    """
     url='http://api.map.baidu.com/geoconv/v1/?'
     args = {'coords':str(lng)+','+str(lat),
             'from':5,
@@ -27,14 +42,36 @@ def bd_latlng2xy(z,lat,lng):
             'output':'json',
             'ak':akey}
     data = urllib.parse.urlencode(args)
-    response = urllib.request.urlopen(url+data)
-    result = response.read()
-    result = json.loads(result)
-    loc = result["result"][0]
-    res = 2**(18-z)
-    x = loc['x']/res
-    y = loc['y']/res
-    return x,y
+    
+    retry_count = 0
+    while retry_count < max_retries:
+        try:
+            response = urllib.request.urlopen(url+data)
+            result = response.read()
+            result = json.loads(result)
+            
+            # Check if the API returned an error
+            if result.get("status") != 0:
+                retry_count += 1
+                print(f"API error: {result}, attempt {retry_count}/{max_retries}")
+                if retry_count >= max_retries:
+                    raise Exception(f"API error after {max_retries} attempts: {result}")
+                time.sleep(retry_delay * retry_count + random.random())
+                continue
+                
+            loc = result["result"][0]
+            res = 2**(18-z)
+            x = loc['x']/res
+            y = loc['y']/res
+            return x,y
+            
+        except Exception as e:
+            retry_count += 1
+            if retry_count >= max_retries:
+                print(f"Failed after {max_retries} attempts: {e}")
+                raise
+            print(f"Error in bd_latlng2xy: {e}, retrying {retry_count}/{max_retries}...")
+            time.sleep(retry_delay * retry_count + random.random())
 
 if __name__ == "__main__":
     z=19
