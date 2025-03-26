@@ -3,7 +3,7 @@
 Baidu Map Tile Downloader
 
 This script downloads map tiles from Baidu Maps for the specified geographic area
-and zoom levels. It can download both satellite imagery and road maps.
+and zoom levels. It can download both satellite imagery, road maps, and vector tiles.
 """
 
 import os
@@ -25,9 +25,10 @@ download_lock = Lock()
 progress_lock = Lock()
 
 # Default number of worker threads
-NUM_THREADS = 10
+NUM_THREADS = 8
 
-def download_tiles(zoom_levels, lat_start, lat_stop, lon_start, lon_stop, satellite=True, num_threads=NUM_THREADS):
+def download_tiles(zoom_levels, lat_start, lat_stop, lon_start, lon_stop, 
+                  satellite=True, vector=False):
     """
     Download Baidu Map tiles for specified geographic area and zoom levels.
     
@@ -38,7 +39,7 @@ def download_tiles(zoom_levels, lat_start, lat_stop, lon_start, lon_stop, satell
         lon_start (float): Starting longitude (western boundary)
         lon_stop (float): Ending longitude (eastern boundary)
         satellite (bool): If True, download satellite imagery; otherwise download road maps
-        num_threads (int): Number of parallel download threads
+        vector (bool): If True, download vector tiles instead of raster tiles
         
     Returns:
         None
@@ -46,6 +47,11 @@ def download_tiles(zoom_levels, lat_start, lat_stop, lon_start, lon_stop, satell
     global download_count, failed_downloads
     total_download_count = 0
     total_failed_downloads = 0
+    
+    # Vector and satellite modes are mutually exclusive
+    if vector and satellite:
+        print("Warning: Both vector and satellite modes selected. Defaulting to vector mode.")
+        satellite = False
     
     for zoom in zoom_levels:
         # Reset counters for this zoom level
@@ -69,6 +75,7 @@ def download_tiles(zoom_levels, lat_start, lat_stop, lon_start, lon_stop, satell
             total_tiles *= 2  # For satellite we download both satellite and road overlay tiles
         
         print(f"Total tiles to download for zoom level {zoom}: {total_tiles}")
+        print(f"Mode: {'Vector' if vector else 'Satellite' if satellite else 'Road map'}")
         
         # Create a queue of download tasks
         download_queue = Queue()
@@ -78,17 +85,18 @@ def download_tiles(zoom_levels, lat_start, lat_stop, lon_start, lon_stop, satell
             for y in range(start_y, stop_y):
                 if satellite:
                     # For satellite mode, download both satellite and road overlay
-                    download_queue.put((x, y, zoom, False, True))  # Satellite tile
-                    download_queue.put((x, y, zoom, True, True))   # Road overlay tile
+                    download_queue.put((x, y, zoom, False, True, False))  # Satellite tile
+                    download_queue.put((x, y, zoom, True, True, False))   # Road overlay tile
                 else:
-                    download_queue.put((x, y, zoom, False, False))  # Road map tile
+                    # For road map or vector tile
+                    download_queue.put((x, y, zoom, False, False, vector))
         
         # Use ThreadPoolExecutor to manage worker threads
-        with ThreadPoolExecutor(max_workers=num_threads) as executor:
+        with ThreadPoolExecutor(max_workers=NUM_THREADS) as executor:
             # Start worker threads
             future_to_worker = {
                 executor.submit(worker_thread, download_queue, total_tiles): i 
-                for i in range(num_threads)
+                for i in range(NUM_THREADS)
             }
             
             # Wait for all workers to complete
@@ -125,15 +133,15 @@ def worker_thread(download_queue, total_tiles):
     while True:
         try:
             # Get a task from the queue with a timeout
-            x, y, zoom, is_overlay, is_satellite = download_queue.get(timeout=1)
+            x, y, zoom, is_overlay, is_satellite, is_vector = download_queue.get(timeout=1)
             
             # Download the tile
             if is_satellite and not is_overlay:
                 # This is a satellite image
                 success = download_satellite(x, y, zoom)
             else:
-                # This is a road map or road overlay
-                success = download_tile(x, y, zoom, is_overlay)
+                # This is a road map, road overlay, or vector tile
+                success = download_tile(x, y, zoom, is_overlay, is_vector)
             
             # Report progress
             global download_count
@@ -142,7 +150,7 @@ def worker_thread(download_queue, total_tiles):
                     download_count += 1
                     current_count = download_count
                 
-                if current_count % 20 == 0:
+                if current_count % NUM_THREADS == 0:
                     with progress_lock:
                         progress = min(100.0, (current_count / total_tiles) * 100)
                         print(f"Progress: {progress:.1f}% ({current_count}/{total_tiles})")
@@ -159,29 +167,37 @@ def worker_thread(download_queue, total_tiles):
             break
 
 
-def download_tile(x, y, zoom, satellite=False):
+def download_tile(x, y, zoom, satellite=False, vector=False):
     """
-    Download a road map tile.
+    Download a road map tile or vector tile.
     
     Args:
         x (int): Tile x-coordinate
         y (int): Tile y-coordinate
         zoom (int): Zoom level
         satellite (bool): If True, use special road overlay styling for satellite view
+        vector (bool): If True, download vector tile instead of raster tile
         
     Returns:
         bool: True if download was successful, False otherwise
     """
     url = None
     filename = None
-    folder = "road/" if satellite else "tile/"
-    scaler = "" if satellite else "&scaler=1"
-    # styles is roadmap when downloading satellite
-    styles = "sl" if satellite else "pl"
-
-    query = "qt=tile&x=%d&y=%d&z=%d&styles=%s%s&udt=20170927" % (x, y, zoom, styles, scaler)
-    url = "http://online0.map.bdimg.com/onlinelabel/?" + query
-    filename = query + ".png"
+    
+    if vector:
+        folder = "vector/"
+        # For vector tiles, use qt=vtile instead of qt=tile
+        query = "qt=vtile&x=%d&y=%d&z=%d&styles=pl&scaler=1&udt=" % (x, y, zoom)
+        url = "http://online0.map.bdimg.com/tile/?" + query
+        filename = query + ".png"
+    else:
+        folder = "road/" if satellite else "tile/"
+        scaler = "" if satellite else "&scaler=1"
+        # styles is roadmap when downloading satellite
+        styles = "sl" if satellite else "pl"
+        query = "qt=tile&x=%d&y=%d&z=%d&styles=%s%s&udt=20250312" % (x, y, zoom, styles, scaler)
+        url = "http://online0.map.bdimg.com/onlinelabel/?" + query
+        filename = query + ".png"
 
     return download_file(url, filename, folder)
 
@@ -202,7 +218,7 @@ def download_satellite(x, y, zoom):
     filename = None
     folder = "it/"
 
-    path = "u=x=%d;y=%d;z=%d;v=009;type=sate&fm=46&udt=20170927" % (x, y, zoom)
+    path = "u=x=%d;y=%d;z=%d;v=009;type=sate&fm=46&udt=20250312" % (x, y, zoom)
     url = "http://shangetu0.map.bdimg.com/it/" + path
     filename = path.replace(";", ",") + ".jpg"
 
@@ -268,11 +284,10 @@ def download_file(url, filename, folder="", max_retries=3, retry_delay=2):
 
 if __name__ == "__main__":
     # Example configuration
-    zoom_levels = list(range(1, 8))
+    zoom_levels = list(range(8, 18))
 
-    lon_start, lat_start = -180, -90
-    lon_stop, lat_stop = 180, 90
-
+    lon_start, lat_start = 119.926525, 30.763961
+    lon_stop, lat_stop = 121.408616, 32.053984
     if lon_start > lon_stop:
         lon_start, lon_stop = lon_stop, lon_start
 
@@ -280,6 +295,6 @@ if __name__ == "__main__":
         lat_start, lat_stop = lat_stop, lat_start
     
     satellite = False
-    num_threads = 20  # You can adjust this number based on your system's capabilities
+    vector = True  # Set to True to download vector tiles
     
-    download_tiles(zoom_levels, lat_start, lat_stop, lon_start, lon_stop, satellite, num_threads)
+    download_tiles(zoom_levels, lat_start, lat_stop, lon_start, lon_stop, satellite, vector)
